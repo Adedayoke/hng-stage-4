@@ -153,7 +153,7 @@ Exchange: notifications.direct
 
 This project is developed by a team of 4 developers:
 - Oke Habeeb (Native Dev) - Typescript
-- 
+- Isaac Ubani (nǝɔᴉ) - Go/Gin
 - 
 - 
 
