@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for User Service
+  postgres-users:
+    image: postgres:15-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+    networks:
+      - notification-network
+
+  # PostgreSQL for Template Service
+  postgres-templates:
+    image: postgres:15-alpine
+    container_name: postgres-templates
+    environment:
+      POSTGRES_DB: templates
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-templates-data:/var/lib/postgresql/data
+    networks:
+      - notification-network
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - notification-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - notification-network
+
+volumes:
+  postgres-users-data:
+  postgres-templates-data:
+  rabbitmq-data:
+  redis-data:
+
+networks:
+  notification-network:
+    driver: bridge
