@@ -44,9 +44,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log('RabbitMQ connection established successfully');
     } catch (error) {
-        this.logger.error('Failed to connect to RabbitMQ', error.stack);
-        this.logger.warn('App will continue without RabbitMQ. Install RabbitMQ to enable message queuing.');
-        // Don't throw - let app start even if RabbitMQ is unavailable
+      this.logger.error('Failed to connect to RabbitMQ', error.stack);
+      this.logger.warn('RabbitMQ unavailable - message queuing disabled');
     }
   }
 
