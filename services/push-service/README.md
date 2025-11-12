@@ -1,109 +1,141 @@
 # Push Service
 
-Processes push notifications from the message queue and sends them to mobile/web clients.
+Microservice responsible for consuming enriched push notification messages from RabbitMQ and delivering them via Firebase Cloud Messaging (FCM).
 
-## Responsibilities
+## Architecture
 
-- Consume messages from `push.queue`
-- Send push notifications via FCM, OneSignal, or Web Push
-- Validate device tokens
-- Handle rich notifications (title, text, image, link)
-- Retry failed sends with exponential backoff
-- Move permanently failed messages to dead-letter queue
+The Push Service is a **pure FCM sender** that:
+1. Consumes fully-enriched messages from `push.queue` in RabbitMQ
+2. Sends push notifications via Firebase Cloud Messaging
+3. Implements retry logic with exponential backoff for failed deliveries
 
-## Tech Stack
+All message enrichment (fetching user data, fetching templates, rendering content) is handled by the API Gateway before publishing to the queue. This makes the Push Service focused solely on delivery.
 
-- **Language**: Go
-- **Message Queue**: RabbitMQ (amqp091-go)
-- **Push Provider**: Firebase Cloud Messaging (FCM) / OneSignal / Web Push
-- **Cache**: Redis (for rate limiting)
+## Message Contract
 
-## Message Format
-
-Messages consumed from `push.queue`:
+Messages consumed from `push.queue` are enriched by the API Gateway and contain all necessary data:
 
 ```json
 {
-  "notification_id": "uuid",
-  "user_id": "uuid",
-  "push_token": "device-token",
-  "template_code": "order_shipped",
-  "variables": {
-    "name": "John Doe",
-    "link": "https://example.com/order/123",
-    "meta": {}
+  "notification_id": "uuid-v4",
+  "user_id": "uuid-v4",
+  "push_token": "user-fcm-device-token",
+  "notification_title": "Welcome to Our Platform",
+  "notification_body": "Hi John Doe, click here to verify your account",
+  "image_url": "https://example.com/welcome.png",
+  "link": "https://example.com/verify?token=abc123",
+  "data": {
+    "template_code": "WELCOME_NOTIFICATION",
+    "name": "John Doe"
   },
-  "priority": 1,
-  "request_id": "unique-request-id",
-  "retry_count": 0
+  "correlation_id": "uuid-v4"
 }
 ```
 
-## Environment Variables
+## Configuration
+
+Required environment variables in `.env`:
 
 ```env
 PORT=3003
-RABBITMQ_URL=amqp://localhost:5672
-REDIS_URL=redis://localhost:6379
-TEMPLATE_SERVICE_URL=http://localhost:3004
 
-# FCM Configuration
-FCM_SERVER_KEY=your-fcm-server-key
-FCM_PROJECT_ID=your-project-id
+# RabbitMQ Configuration
+RABBITMQ_URL=amqp://guest:guest@localhost:5672
+RABBITMQ_QUEUE_PUSH=push.queue
 
-# Or OneSignal
-ONESIGNAL_APP_ID=your-app-id
-ONESIGNAL_API_KEY=your-api-key
-
-# Web Push (VAPID)
-VAPID_PUBLIC_KEY=your-public-key
-VAPID_PRIVATE_KEY=your-private-key
-VAPID_SUBJECT=mailto:your-email@example.com
+# Firebase Cloud Messaging
+FCM_PROJECT_ID=your-firebase-project-id
+FCM_PRIVATE_KEY=your-firebase-private-key
+FCM_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
 
 # Retry Configuration
-MAX_RETRY_ATTEMPTS=3
+RETRY_MAX_ATTEMPTS=3
+RETRY_BACKOFF_SECONDS=5
+```
+FCM_SERVER_KEY=your-fcm-server-key
+FCM_PROJECT_ID=your-firebase-project-id
+FCM_PRIVATE_KEY=your-firebase-private-key
+FCM_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+
+# Retry Configuration
+RETRY_MAX_ATTEMPTS=3
 RETRY_BACKOFF_SECONDS=5
 ```
 
-## Running Locally
+## FCM Setup
+
+1. Go to Firebase Console: https://console.firebase.google.com
+2. Select your project (or create new one)
+3. Go to Project Settings > Service Accounts
+4. Click "Generate New Private Key"
+5. Download the JSON file
+6. Extract these values to `.env`:
+   - `project_id` → `FCM_PROJECT_ID`
+   - `private_key` → `FCM_PRIVATE_KEY`
+   - `client_email` → `FCM_CLIENT_EMAIL`
+
+## Dependencies
+
+External services required:
+- **RabbitMQ**: Message queue (port 5672)
+- **Firebase Cloud Messaging**: Push notification delivery platform
+
+No direct dependencies on User Service or Template Service - the API Gateway handles all external service calls.
+
+## Running the Service
 
 ```bash
-go mod download
-go run cmd/main.go
+# Development
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
 ```
 
-## Running Tests
+## Health Check
 
-```bash
-go test ./...
-go test -v ./... -cover
-```
+GET `http://localhost:3003/health`
 
-## Docker
-
-```bash
-docker build -t push-service .
-docker run -p 3003:3003 push-service
-```
-
-## Push Notification Format
-
-```json
-{
-  "title": "Your Order Has Shipped",
-  "body": "Hi John Doe, your order is on the way!",
-  "image": "https://example.com/image.png",
-  "link": "https://example.com/order/123",
-  "data": {
-    "order_id": "123",
-    "action": "view_order"
-  }
-}
-```
+Returns service health status including memory usage.
 
 ## Retry Logic
 
-1. Initial attempt fails → wait 5 seconds
-2. Second attempt fails → wait 25 seconds (5²)
-3. Third attempt fails → wait 125 seconds (5³)
-4. After max retries → move to dead-letter queue
+- **Attempt 1**: Immediate processing
+- **Attempt 2**: Wait 5 seconds (5^1)
+- **Attempt 3**: Wait 25 seconds (5^2)
+- **After 3 failures**: Message moved to dead letter queue
+
+## Logging
+
+All operations include correlation_id for request tracing across services.
+
+Example log output:
+```
+[RabbitMQConsumerService] Received message: abc-123-def
+[PushProcessorService] Processing push notification: abc-123-def [corr-456]
+[FcmService] Push notification sent successfully: projects/your-project/messages/0:1234567890
+[PushProcessorService] Push notification sent successfully: abc-123-def [corr-456]
+```
+
+## Project Structure
+
+```
+src/
+├── config/               # Configuration management
+│   └── configuration.ts
+├── fcm/                  # Firebase Cloud Messaging integration
+│   ├── fcm.service.ts
+│   └── fcm.module.ts
+├── health/               # Health check endpoint
+│   ├── health.controller.ts
+│   └── health.module.ts
+├── push/                 # Push notification processing logic
+│   ├── push-processor.service.ts
+│   └── push.module.ts
+├── rabbitmq/             # Message queue consumer
+│   ├── rabbitmq-consumer.service.ts
+│   └── rabbitmq.module.ts
+├── app.module.ts         # Root module
+└── main.ts               # Application entry point
+```
