@@ -10,21 +10,35 @@ export class RedisService implements OnModuleInit {
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
+    const redisUrl = this.configService.get<string>('redis.url');
     const redisHost = this.configService.get<string>('redis.host');
     const redisPort = this.configService.get<number>('redis.port');
 
     try {
-      this.client = new Redis({
-        host: redisHost,
-        port: redisPort,
-        retryStrategy: (times) => {
-          if (times > 3) {
-            this.logger.error('Redis connection failed after 3 retries');
-            return null;
-          }
-          return Math.min(times * 200, 1000);
-        },
-      });
+      // Use REDIS_URL if provided (Railway/production), otherwise use host/port (local)
+      if (redisUrl) {
+        this.client = new Redis(redisUrl, {
+          retryStrategy: (times) => {
+            if (times > 3) {
+              this.logger.error('Redis connection failed after 3 retries');
+              return null;
+            }
+            return Math.min(times * 200, 1000);
+          },
+        });
+      } else {
+        this.client = new Redis({
+          host: redisHost,
+          port: redisPort,
+          retryStrategy: (times) => {
+            if (times > 3) {
+              this.logger.error('Redis connection failed after 3 retries');
+              return null;
+            }
+            return Math.min(times * 200, 1000);
+          },
+        });
+      }
 
       this.client.on('connect', () => {
         this.logger.log('Redis connected successfully');
