@@ -1,6 +1,14 @@
 # Distributed Notification System
 
-A scalable microservices-based notification system that handles email and push notifications asynchronously through message queues.
+A scalable microservices-based notification system that handles email and push notifications asynchronously through message queues. Built as a team project for HNG Stage 4 Backend Task.
+
+## 🚀 Live Deployments
+
+- **API Gateway**: https://hng-stage-4-production-1650.up.railway.app
+- **User Service**: https://stage4-user-service.up.railway.app
+- **Email Service**: https://email-service-production-0a17.up.railway.app
+- **Template Service**: Unavailable
+- **Push Service**: Unavailable
 
 ## Architecture Overview
 
@@ -12,12 +20,15 @@ This system consists of 5 independent microservices communicating via RabbitMQ:
 - **Push Service** (NestJS) - Push notification delivery via Firebase Cloud Messaging
 - **Template Service** (Fastify/Node.js) - Notification template management
 
-### Service Repositories
+### Service Repositories & Team Structure
 
-- **API Gateway & Push Service**: This repository (services/api-gateway, services/push-service)
-- **User Service**: https://github.com/akhilomeella/hng-stage4/tree/master/user-service
-- **Template Service**: https://github.com/akhilomeella/hng-stage4/tree/master/template-service
-- **Email Service**: Built by team member (Go)
+| Service | Framework | Repository | Team Member |
+|---------|-----------|------------|-------------|
+| API Gateway | NestJS | This repo (`services/api-gateway`) | Oke Habeeb Adedayo |
+| Push Service | NestJS | This repo (`services/push-service`) | Isaac Ubani |
+| User Service | Fastify | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/user-service) | Emmanuella Akhilome |
+| Template Service | Fastify | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/template-service) | Emmanuella Akhilome |
+| Email Service | Go | Separate repo | Oyelowo Emmanuel Oluwadara |
 
 ## Tech Stack
 
@@ -137,13 +148,13 @@ Navigate to "Queues" tab to see messages in `email.queue` and `push.queue`.
 
 ## Services Overview
 
-| Service | Status | Framework | Port | Responsibilities | Repository |
-|---------|--------|----------|------|------------------|------------|
-| API Gateway | ✅ Complete | NestJS | 3000 | Request validation, message enrichment, routing | This repo |
-| Push Service | ✅ Complete | NestJS | 3003 | FCM push notification delivery | This repo |
-| User Service | ✅ Complete | Fastify/Node.js | - | User data management | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/user-service) |
-| Template Service | ✅ Complete | Fastify/Node.js | 3004 | Template management | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/template-service) |
-| Email Service | 🚧 In Progress | Go | 3002 | Email notification delivery | Team member |
+| Service | Status | Framework | Port | Deployment | Documentation |
+|---------|--------|----------|------|------------|---------------|
+| API Gateway | ✅ Deployed | NestJS | 3000 | Railway | [README](services/api-gateway/README.md) |
+| Push Service | ✅ Complete | NestJS | 3003 | Local | [README](services/push-service/README.md) |
+| User Service | ✅ Deployed | Fastify | - | Railway | [External Repo](https://github.com/akhilomeella/hng-stage4/tree/master/user-service) |
+| Template Service | ✅ Deployed | Fastify | 3004 | Railway | [External Repo](https://github.com/akhilomeella/hng-stage4/tree/master/template-service) |
+| Email Service | ✅ Deployed | Go | - | Railway | External Repo |
 
 ## Development Workflow
 
@@ -256,21 +267,6 @@ git commit -m "docs(readme): update setup instructions"
 - `fix/<bug-name>` - Bug fixes
 - `docs/<doc-update>` - Documentation updates
 
-### Deployment
-
-To request a server for deployment, use the command `/request-server` in your HNG team channel.
-
-### Submission
-
-When ready to submit your work, use the `/submit` command in the HNG channel as instructed in the task guidelines.
-
-## Team
-
-This project is developed by a team of 4 developers:
-- **Oke Habeeb** - TypeScript Developer (API Gateway)
-- [Team Member 2] - [Role]
-- [Team Member 3] - [Role]
-- [Team Member 4] - [Role]
 
 ## Useful Links
 

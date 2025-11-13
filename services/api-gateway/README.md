@@ -1,145 +1,287 @@
-# API Gateway Service
+# API Gateway Service# API Gateway Service
 
-Entry point for all notification requests in the distributed notification system.
 
-## Status: ✅ Fully Implemented
 
-## Responsibilities
+Entry point for the distributed notification system. Validates requests, enriches messages with user and template data, and publishes to RabbitMQ queues.Entry point for all notification requests in the distributed notification system.
 
-- ✅ Validate and authenticate incoming requests
-- ✅ Route messages to appropriate queues (email or push)
+
+
+## Tech Stack## Status: ✅ Fully Implemented
+
+
+
+- NestJS 10.x (TypeScript)## Responsibilities
+
+- RabbitMQ (message queue)
+
+- Redis (idempotency)- ✅ Validate and authenticate incoming requests
+
+- Swagger (API documentation)- ✅ Route messages to appropriate queues (email or push)
+
 - ✅ Track notification status with correlation IDs
-- ✅ Idempotency checking via Redis
-- ✅ API documentation via Swagger
-- 🚧 Rate limiting (planned)
-- 🚧 JWT authentication (planned)
 
-## Tech Stack
+## Key Features- ✅ Idempotency checking via Redis
+
+- ✅ API documentation via Swagger
+
+- **Message Enrichment**: Fetches user data and templates before queuing- 🚧 Rate limiting (planned)
+
+- **Idempotency**: Redis-based duplicate request prevention (1-hour TTL)- 🚧 JWT authentication (planned)
+
+- **Dead Letter Queue**: Failed messages routed to `failed.queue`
+
+- **Correlation IDs**: Request tracing across microservices## Tech Stack
+
+- **Snake_case Convention**: All fields follow snake_case
 
 - **Framework**: NestJS 10.x
-- **Language**: TypeScript 5.x
+
+## API Endpoints- **Language**: TypeScript 5.x
+
 - **Message Queue**: RabbitMQ (amqplib)
-- **Cache**: Redis (ioredis)
-- **Validation**: class-validator, class-transformer
-- **Documentation**: @nestjs/swagger
-- **Health Checks**: @nestjs/terminus
+
+### Root- **Cache**: Redis (ioredis)
+
+```- **Validation**: class-validator, class-transformer
+
+GET /- **Documentation**: @nestjs/swagger
+
+```- **Health Checks**: @nestjs/terminus
+
+Returns service information.
 
 ## Features Implemented
 
-### ✅ Notification Endpoint
-- POST /api/v1/notifications with full validation
-- Snake_case request/response format
+### Create Notification
+
+```### ✅ Notification Endpoint
+
+POST /api/v1/notifications- POST /api/v1/notifications with full validation
+
+```- Snake_case request/response format
+
 - UUID generation for notification and correlation IDs
-- Publishes to RabbitMQ exchange with routing keys
 
-### ✅ Idempotency
-- Redis-based duplicate request detection
-- Request IDs tracked for 1 hour (configurable TTL)
-- Returns 409 Conflict for duplicate requests
+**Request:**- Publishes to RabbitMQ exchange with routing keys
 
-### ✅ Logging
-- Correlation ID for request tracing
-- Structured logging with context
-- All logs include correlation IDs for debugging
-
-### ✅ Health Checks
-- GET /health with memory monitoring
-- Returns JSON status of service health
-
-### ✅ API Documentation
-- Interactive Swagger UI at /api/docs
-- Auto-generated from decorators
-- Request/response examples included
-
-## API Endpoints
-
-### POST /api/v1/notifications
-Create a new notification request.
-
-**Request Body:**
 ```json
-{
-  "notification_type": "email" | "push",
-  "user_id": "uuid",
-  "template_code": "string",
+
+{### ✅ Idempotency
+
+  "notification_type": "push",- Redis-based duplicate request detection
+
+  "user_id": "cc19e6a4-2882-415b-bd69-bc9a5ae733f6",- Request IDs tracked for 1 hour (configurable TTL)
+
+  "template_code": "welcome_notification",- Returns 409 Conflict for duplicate requests
+
   "variables": {
-    "name": "string",
-    "link": "string",
-    "meta": {}
-  },
-  "request_id": "string",
-  "priority": 1,
-  "metadata": {}
+
+    "name": "John Doe"### ✅ Logging
+
+  },- Correlation ID for request tracing
+
+  "request_id": "req_unique_123",- Structured logging with context
+
+  "priority": 1- All logs include correlation IDs for debugging
+
 }
+
+```### ✅ Health Checks
+
+- GET /health with memory monitoring
+
+**Response:**- Returns JSON status of service health
+
+```json
+
+{### ✅ API Documentation
+
+  "success": true,- Interactive Swagger UI at /api/docs
+
+  "data": {- Auto-generated from decorators
+
+    "notification_id": "11eb326a-ad38-4ff9-aa69-c545f8144287",- Request/response examples included
+
+    "status": "queued",
+
+    "correlation_id": "e5f505a0-390d-4c62-9c73-620da2cd2fe2"## API Endpoints
+
+  },
+
+  "message": "Notification queued successfully"### POST /api/v1/notifications
+
+}Create a new notification request.
+
 ```
 
-### GET /health
-Health check endpoint.
+**Request Body:**
 
-## Environment Variables
+### Health Check```json
+
+```{
+
+GET /health  "notification_type": "email" | "push",
+
+```  "user_id": "uuid",
+
+  "template_code": "string",
+
+### API Documentation  "variables": {
+
+```    "name": "string",
+
+GET /api/docs    "link": "string",
+
+```    "meta": {}
+
+Interactive Swagger UI.  },
+
+  "request_id": "string",
+
+## Environment Variables  "priority": 1,
+
+  "metadata": {}
+
+```env}
+
+PORT=3000```
+
+NODE_ENV=production
+
+RABBITMQ_URL=amqp://localhost:5672### GET /health
+
+REDIS_URL=redis://localhost:6379Health check endpoint.
+
+USER_SERVICE_URL=https://stage4-user-service.up.railway.app
+
+TEMPLATE_SERVICE_URL=http://localhost:3004## Environment Variables
+
+```
 
 Create a `.env` file in the `services/api-gateway` directory:
 
+## Running
+
 ```env
-# Server
-PORT=3000
-NODE_ENV=development
 
-# RabbitMQ
+**Development:**# Server
+
+```bashPORT=3000
+
+npm installNODE_ENV=development
+
+npm run start:dev
+
+```# RabbitMQ
+
 RABBITMQ_URL=amqp://localhost:5672
-RABBITMQ_EXCHANGE=notifications.direct
-RABBITMQ_QUEUE_EMAIL=email.queue
-RABBITMQ_QUEUE_PUSH=push.queue
 
-# Redis
+**Production:**RABBITMQ_EXCHANGE=notifications.direct
+
+```bashRABBITMQ_QUEUE_EMAIL=email.queue
+
+npm run buildRABBITMQ_QUEUE_PUSH=push.queue
+
+npm run start:prod
+
+```# Redis
+
 REDIS_HOST=localhost
-REDIS_PORT=6379
 
-# Other Services
-USER_SERVICE_URL=https://stage4-user-service.up.railway.app
-TEMPLATE_SERVICE_URL=http://localhost:3004
+## Architecture FlowREDIS_PORT=6379
 
-# JWT (for future use)
-JWT_SECRET=your-secret-key-change-in-production
-```
 
-## Getting Started
 
-### Prerequisites
+1. Receives notification request# Other Services
 
-- Node.js 18+ and npm
+2. Validates request formatUSER_SERVICE_URL=https://stage4-user-service.up.railway.app
+
+3. Checks idempotency (Redis)TEMPLATE_SERVICE_URL=http://localhost:3004
+
+4. Fetches user data from User Service
+
+5. Fetches template from Template Service# JWT (for future use)
+
+6. Renders template with variablesJWT_SECRET=your-secret-key-change-in-production
+
+7. Builds enriched message```
+
+8. Publishes to RabbitMQ queue
+
+9. Returns notification ID## Getting Started
+
+
+
+## Message Format### Prerequisites
+
+
+
+Messages published to queues contain all data needed for delivery.- Node.js 18+ and npm
+
 - Docker Desktop (for RabbitMQ and Redis)
 
-### Installation
+**Push Queue:**
 
-```bash
-# Install dependencies
-npm install
+```json### Installation
 
-# Start infrastructure (from project root)
-cd ../..
-docker-compose -f docker/docker-compose.yml up -d
+{
+
+  "notification_id": "uuid",```bash
+
+  "user_id": "uuid",# Install dependencies
+
+  "push_token": "fcm-token",npm install
+
+  "notification_title": "Rendered title",
+
+  "notification_body": "Rendered body",# Start infrastructure (from project root)
+
+  "correlation_id": "uuid"cd ../..
+
+}docker-compose -f docker/docker-compose.yml up -d
+
+```
 
 # Go back to api-gateway
-cd services/api-gateway
-```
 
-### Running the Application
+**Email Queue:**cd services/api-gateway
 
-**Development mode with hot reload:**
-```bash
-npm run start:dev
-```
+```json```
 
-**Production mode:**
-```bash
+{
+
+  "notification_id": "uuid",### Running the Application
+
+  "user_id": "uuid",
+
+  "email": "user@example.com",**Development mode with hot reload:**
+
+  "subject": "Rendered subject",```bash
+
+  "html_body": "Rendered HTML",npm run start:dev
+
+  "text_body": "Rendered text",```
+
+  "correlation_id": "uuid"
+
+}**Production mode:**
+
+``````bash
+
 npm run build
-npm run start:prod
+
+## Error Responsesnpm run start:prod
+
 ```
 
-### Testing the API
+- **400**: Invalid request format
 
-**Health Check:**
+- **404**: User or template not found### Testing the API
+
+- **409**: Duplicate request
+
+- **500**: Internal server error**Health Check:**
+
 ```bash
 curl http://localhost:3000/health
 ```
