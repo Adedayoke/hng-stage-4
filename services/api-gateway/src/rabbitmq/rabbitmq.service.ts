@@ -30,13 +30,25 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       const exchange = this.configService.get<string>('rabbitmq.exchange');
       const emailQueue = this.configService.get<string>('rabbitmq.queues.email');
       const pushQueue = this.configService.get<string>('rabbitmq.queues.push');
+      const failedQueue = 'failed.queue';
 
       // Declare exchange (direct type for routing)
       await this.channel.assertExchange(exchange, 'direct', { durable: true });
 
-      // Declare queues
-      await this.channel.assertQueue(emailQueue, { durable: true });
-      await this.channel.assertQueue(pushQueue, { durable: true });
+      // Declare dead letter queue
+      await this.channel.assertQueue(failedQueue, { durable: true });
+
+      // Declare queues with dead letter configuration
+      await this.channel.assertQueue(emailQueue, {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: failedQueue,
+      });
+      await this.channel.assertQueue(pushQueue, {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: failedQueue,
+      });
 
       // Bind queues to exchange with routing keys
       await this.channel.bindQueue(emailQueue, exchange, 'email');

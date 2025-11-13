@@ -90,8 +90,9 @@ Messages in `email.queue` are ready for immediate email delivery:
 
 ## 🔗 User Service API Contract
 
-### Base URL
-`http://localhost:3001/api/v1`
+**Framework**: Fastify/Node.js  
+**Repository**: https://github.com/akhilomeella/hng-stage4/tree/master/user-service  
+**Base URL**: `https://stage4-user-service.up.railway.app`
 
 ### Endpoints Required
 
@@ -165,8 +166,9 @@ POST /users
 
 ## 📄 Template Service API Contract
 
-### Base URL
-`http://localhost:3004/api/v1`
+**Framework**: Fastify/Node.js  
+**Repository**: https://github.com/akhilomeella/hng-stage4/tree/master/template-service  
+**Base URL**: `http://localhost:3004/api/v1` (or deployed URL)
 
 ### Endpoints Required
 

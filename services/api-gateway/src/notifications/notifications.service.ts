@@ -107,7 +107,7 @@ export class NotificationsService {
   private async fetchUserData(userId: string): Promise<any> {
     try {
       const response = await fetch(
-        `${process.env.USER_SERVICE_URL}/api/v1/users/${userId}`,
+        `${process.env.USER_SERVICE_URL}/users/${userId}`,
       );
       if (!response.ok) {
         throw new Error(`User service returned ${response.status}`);
@@ -125,7 +125,7 @@ export class NotificationsService {
   private async fetchTemplateData(templateCode: string): Promise<any> {
     try {
       const response = await fetch(
-        `${process.env.TEMPLATE_SERVICE_URL}/api/v1/templates/${templateCode}`,
+        `${process.env.TEMPLATE_SERVICE_URL}/templates/${templateCode}`,
       );
       if (!response.ok) {
         throw new Error(`Template service returned ${response.status}`);
@@ -181,7 +181,7 @@ export class NotificationsService {
   ): any {
     const baseMessage = {
       notification_id: notificationId,
-      user_id: userData.user_id,
+      user_id: userData.id || userData.user_id,
       correlation_id: correlationId,
       data: {
         template_code: templateData.template_code,
@@ -190,6 +190,12 @@ export class NotificationsService {
     };
 
     if (notificationType === NotificationType.PUSH) {
+      if (!userData.push_token) {
+        throw new BadRequestException(
+          `User does not have a push token. Please ensure the user has registered their device.`,
+        );
+      }
+      
       return {
         ...baseMessage,
         push_token: userData.push_token,
@@ -199,6 +205,12 @@ export class NotificationsService {
         link: templateData.link || null,
       };
     } else {
+      if (!userData.email) {
+        throw new BadRequestException(
+          `User does not have an email address.`,
+        );
+      }
+      
       return {
         ...baseMessage,
         email: userData.email,

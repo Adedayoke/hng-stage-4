@@ -32,7 +32,17 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
       this.channel = await this.connection.createChannel();
 
       const queue = this.configService.get<string>('rabbitmq.queue');
-      await this.channel.assertQueue(queue, { durable: true });
+      const deadLetterQueue = 'failed.queue';
+
+      // Assert dead letter queue
+      await this.channel.assertQueue(deadLetterQueue, { durable: true });
+
+      // Assert main queue with dead letter exchange
+      await this.channel.assertQueue(queue, {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: deadLetterQueue,
+      });
 
       this.logger.log('RabbitMQ consumer connected successfully');
     } catch (error) {
@@ -60,20 +70,33 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
             } catch (error) {
               this.logger.error('Error processing message', error.stack);
               
-              const retryCount = msg.properties.headers?.['x-retry-count'] || 0;
+              const retryCount = (msg.properties.headers?.['x-retry-count'] as number) || 0;
               const maxRetries = this.configService.get<number>('retry.maxAttempts') || 3;
 
               if (retryCount < maxRetries) {
-                this.logger.warn(`Retrying message (attempt ${retryCount + 1}/${maxRetries})`);
+                const nextRetryCount = retryCount + 1;
+                this.logger.warn(`Retrying message (attempt ${nextRetryCount}/${maxRetries})`);
                 
                 const backoffSeconds = this.configService.get<number>('retry.backoffSeconds') || 5;
-                const backoffMs = Math.pow(backoffSeconds, retryCount + 1) * 1000;
+                const backoffMs = Math.pow(backoffSeconds, nextRetryCount) * 1000;
 
                 setTimeout(() => {
-                  this.channel.nack(msg, false, true);
+                  // Republish with incremented retry count
+                  this.channel.publish(
+                    '',
+                    queue,
+                    msg.content,
+                    {
+                      headers: {
+                        'x-retry-count': nextRetryCount,
+                      },
+                    },
+                  );
+                  this.channel.ack(msg);
                 }, backoffMs);
               } else {
-                this.logger.error('Max retries reached, moving to dead letter queue');
+                this.logger.error(`Max retries (${maxRetries}) reached, moving to dead letter queue`);
+                // Reject without requeue - goes to dead letter queue
                 this.channel.nack(msg, false, false);
               }
             }

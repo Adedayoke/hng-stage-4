@@ -2,7 +2,7 @@
 
 Entry point for all notification requests in the distributed notification system.
 
-## Status: ✅ Fully Implemented & Tested
+## Status: ✅ Fully Implemented
 
 ## Responsibilities
 
@@ -96,7 +96,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # Other Services
-USER_SERVICE_URL=http://localhost:3001
+USER_SERVICE_URL=https://stage4-user-service.up.railway.app
 TEMPLATE_SERVICE_URL=http://localhost:3004
 
 # JWT (for future use)
@@ -199,11 +199,6 @@ Open http://localhost:3000/api/docs in your browser to see:
 - Interactive API documentation
 - Try out endpoints
 - View request/response schemas
-REDIS_URL=redis://localhost:6379
-USER_SERVICE_URL=http://localhost:3001
-TEMPLATE_SERVICE_URL=http://localhost:3004
-JWT_SECRET=your-secret-key
-```
 
 ## Running Locally
 

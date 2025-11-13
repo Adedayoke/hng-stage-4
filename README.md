@@ -1,23 +1,34 @@
 # Distributed Notification System
 
-A microservices-based notification system that handles email and push notifications asynchronously through message queues.
+A scalable microservices-based notification system that handles email and push notifications asynchronously through message queues.
 
 ## Architecture Overview
 
 This system consists of 5 independent microservices communicating via RabbitMQ:
 
-- **API Gateway** (NestJS) - Entry point for all notification requests
-- **User Service** (NestJS) - Manages user data and preferences  
-- **Email Service** (Go) - Processes email notifications from queue
-- **Push Service** (Go) - Processes push notifications from queue
-- **Template Service** (NestJS/Go) - Manages notification templates
+- **API Gateway** (NestJS) - Entry point, request validation, and message enrichment
+- **User Service** (Fastify/Node.js) - User data management and notification preferences  
+- **Email Service** (Go) - Email notification delivery
+- **Push Service** (NestJS) - Push notification delivery via Firebase Cloud Messaging
+- **Template Service** (Fastify/Node.js) - Notification template management
+
+### Service Repositories
+
+- **API Gateway & Push Service**: This repository (services/api-gateway, services/push-service)
+- **User Service**: https://github.com/akhilomeella/hng-stage4/tree/master/user-service
+- **Template Service**: https://github.com/akhilomeella/hng-stage4/tree/master/template-service
+- **Email Service**: Built by team member (Go)
 
 ## Tech Stack
 
-- **Languages**: TypeScript (NestJS), Go
-- **Message Queue**: RabbitMQ
+- **Backend Frameworks**: 
+  - NestJS (API Gateway, Push Service)
+  - Fastify/Node.js (User Service, Template Service)
+  - Go (Email Service)
+- **Message Queue**: RabbitMQ with dead letter queue support
 - **Databases**: PostgreSQL (User & Template services)
-- **Cache**: Redis (rate limiting, preferences cache)
+- **Cache**: Redis (idempotency and caching)
+- **Push Notifications**: Firebase Cloud Messaging (FCM)
 - **Containerization**: Docker & Docker Compose
 
 ## Prerequisites
@@ -34,17 +45,13 @@ This system consists of 5 independent microservices communicating via RabbitMQ:
 ```
 stage-4/
 ├── services/
-│   ├── api-gateway/       # NestJS - Entry point and routing
-│   ├── user-service/      # NestJS - User management
-│   ├── email-service/     # Go - Email processing
-│   ├── push-service/      # Go - Push notification processing
-│   └── template-service/  # Go/NestJS - Template management
+│   ├── api-gateway/       # NestJS - Request validation and message enrichment
+│   ├── push-service/      # NestJS - FCM push notification delivery
+│   └── (user-service, email-service, template-service built by teammates)
 ├── docker/
-│   └── docker-compose.yml # Orchestration for all services
-├── docs/
-│   └── architecture.md    # System design diagram
-└── .github/
-    └── workflows/         # CI/CD pipelines
+│   └── docker-compose.yml # Infrastructure orchestration
+└── docs/
+    └── message-contracts.md  # Message queue contracts
 ```
 
 ## Getting Started
@@ -75,23 +82,27 @@ Verify containers are running:
 docker ps
 ```
 
-### 3. Run API Gateway (Currently Implemented)
+### 3. Run Services
 
-The API Gateway is fully functional and ready to use:
-
+**API Gateway:**
 ```bash
 cd services/api-gateway
 npm install
 npm run start:dev
 ```
 
-**API Gateway Features:**
-- ✅ POST /api/v1/notifications - Queue notifications
-- ✅ GET /health - Health check
-- ✅ Swagger documentation at http://localhost:3000/api/docs
-- ✅ RabbitMQ message publishing
-- ✅ Redis idempotency checks
-- ✅ Correlation ID logging
+**Push Service:**
+```bash
+cd services/push-service
+npm install
+npm run start:dev
+```
+
+Both services include:
+- Health check endpoints (`/health`)
+- Structured logging with correlation IDs
+- Environment-based configuration
+- Docker support
 
 ### 4. Test the API
 
@@ -124,15 +135,15 @@ Check queued messages in RabbitMQ Management UI:
 
 Navigate to "Queues" tab to see messages in `email.queue` and `push.queue`.
 
-## Services Status
+## Services Overview
 
-| Service | Status | Language | Port |
-|---------|--------|----------|------|
-| API Gateway | ✅ Complete | NestJS (TypeScript) | 3000 |
-| User Service | 🚧 In Progress | NestJS (TypeScript) | 3001 |
-| Email Service | 🚧 In Progress | Go | 3002 |
-| Push Service | 🚧 In Progress | Go | 3003 |
-| Template Service | 🚧 In Progress | NestJS/Go | 3004 |
+| Service | Status | Framework | Port | Responsibilities | Repository |
+|---------|--------|----------|------|------------------|------------|
+| API Gateway | ✅ Complete | NestJS | 3000 | Request validation, message enrichment, routing | This repo |
+| Push Service | ✅ Complete | NestJS | 3003 | FCM push notification delivery | This repo |
+| User Service | ✅ Complete | Fastify/Node.js | - | User data management | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/user-service) |
+| Template Service | ✅ Complete | Fastify/Node.js | 3004 | Template management | [akhilomeella/hng-stage4](https://github.com/akhilomeella/hng-stage4/tree/master/template-service) |
+| Email Service | 🚧 In Progress | Go | 3002 | Email notification delivery | Team member |
 
 ## Development Workflow
 
@@ -195,10 +206,12 @@ Exchange: notifications.direct
 
 ## Key Features
 
-- **Circuit Breaker**: Prevents cascading failures
-- **Retry Logic**: Exponential backoff for failed messages
-- **Idempotency**: Request IDs prevent duplicate notifications
+- **Message Enrichment**: API Gateway enriches messages before queueing
+- **Retry Logic**: Exponential backoff (5s, 25s) with max 3 attempts
+- **Dead Letter Queue**: Failed messages routed to `failed.queue`
+- **Idempotency**: Redis-based duplicate request prevention (1-hour TTL)
 - **Health Checks**: All services expose `/health` endpoints
+- **Correlation IDs**: Request tracing across services
 - **Horizontal Scaling**: Stateless services support scaling
 
 ## Performance Targets
